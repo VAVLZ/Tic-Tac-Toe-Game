@@ -25,19 +25,16 @@ public class GameScreen implements Screen {
     private final TicTacToeGame game;
     private final boolean vsAI;
 
-    // Текстуры
     private Texture boardTexture;
     private Texture xTexture;
     private Texture oTexture;
 
-    // Игровые переменные
     private SpriteBatch batch;
     private char[][] board;
     private char currentPlayer;
     private Rectangle[][] cells;
     private GameState gameState;
 
-    // UI элементы
     private Stage uiStage;
     private BitmapFont font;
     private Label statusLabel;
@@ -59,7 +56,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-        // Загрузка текстур
         boardTexture = new Texture(Gdx.files.internal("board.png"));
         xTexture = new Texture(Gdx.files.internal("X.png"));
         oTexture = new Texture(Gdx.files.internal("O.png"));
@@ -67,7 +63,6 @@ public class GameScreen implements Screen {
 
         batch = new SpriteBatch();
 
-        // Инициализация игрового поля
         int boardSize = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float cellSize = boardSize / 3f;
         float boardX = (float) (Gdx.graphics.getWidth() - boardSize) / 2;
@@ -84,26 +79,21 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Создание UI
         uiStage = new Stage();
         Gdx.input.setInputProcessor(uiStage);
 
-        // Стиль для текста
         Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
         statusLabel = new Label("Turn: X", labelStyle);
         statusLabel.setAlignment(Align.right);
 
-        // Создаем текстуры для кнопок программно
         TextureRegionDrawable buttonUp = createButtonDrawable(Color.DARK_GRAY);
         TextureRegionDrawable buttonDown = createButtonDrawable(Color.GRAY);
 
-        // Стиль для кнопок
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.font = font;
         buttonStyle.up = buttonUp;
         buttonStyle.down = buttonDown;
 
-        // Кнопка рестарта
         restartButton = new TextButton("Restart", buttonStyle);
         restartButton.addListener(new ClickListener() {
             @Override
@@ -115,7 +105,6 @@ public class GameScreen implements Screen {
             }
         });
 
-        // Кнопка возврата в меню
         menuButton = new TextButton("To menu", buttonStyle);
         menuButton.addListener(new ClickListener() {
             @Override
@@ -127,9 +116,8 @@ public class GameScreen implements Screen {
         restartButton.setVisible(false);
         menuButton.setVisible(false);
 
-        // Компоновка UI с адаптацией под размер экрана
-        float buttonWidth = Gdx.graphics.getWidth() * 0.2f; // 20% ширины экрана
-        float buttonHeight = buttonWidth * 0.4f; // Соотношение сторон
+        float buttonWidth = Gdx.graphics.getWidth() * 0.2f;
+        float buttonHeight = buttonWidth * 0.4f;
 
         Table buttonTable = new Table();
         buttonTable.defaults().pad(5).width(buttonWidth).height(buttonHeight);
@@ -138,7 +126,7 @@ public class GameScreen implements Screen {
 
         Table uiTable = new Table();
         uiTable.setFillParent(true);
-        uiTable.top().right().pad(10); // Уменьшенный отступ
+        uiTable.top().right().pad(10);
         uiTable.add(statusLabel).right().padBottom(5).row();
         uiTable.add(buttonTable).right();
 
@@ -159,7 +147,6 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Отрисовка игрового поля
         batch.begin();
         int boardSize = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         float boardX = (float) (Gdx.graphics.getWidth() - boardSize) / 2;
@@ -189,26 +176,23 @@ public class GameScreen implements Screen {
         }
         batch.end();
 
-        // Обработка ввода
         if (Gdx.input.justTouched() && gameState == GameState.PLAYING) {
             Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
             handleTouch(touchPos);
         }
 
-        // Ход ИИ
         if (vsAI && currentPlayer == 'O' && gameState == GameState.PLAYING) {
             makeAIMove();
         }
 
-        // Отрисовка UI
         uiStage.act(delta);
         uiStage.draw();
     }
 
     private void handleTouch(Vector3 touchPos) {
         int boardSize = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        float boardX = (Gdx.graphics.getWidth() - boardSize) / 2;
-        float boardY = (Gdx.graphics.getHeight() - boardSize) / 2;
+        float boardX = (float) (Gdx.graphics.getWidth() - boardSize) / 2;
+        float boardY = (float) (Gdx.graphics.getHeight() - boardSize) / 2;
 
         if (touchPos.x < boardX || touchPos.x > boardX + boardSize ||
             touchPos.y < boardY || touchPos.y > boardY + boardSize) {
@@ -230,7 +214,6 @@ public class GameScreen implements Screen {
     }
 
     private void makeAIMove() {
-        // 1. Проверка на победу ИИ
         int[] winMove = findWinningMove('O');
         if (winMove != null) {
             board[winMove[0]][winMove[1]] = 'O';
@@ -238,7 +221,6 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // 2. Блокировка игрока
         int[] blockMove = findWinningMove('X');
         if (blockMove != null) {
             board[blockMove[0]][blockMove[1]] = 'O';
@@ -247,7 +229,6 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // 3. Захват центра
         if (board[1][1] == 0) {
             board[1][1] = 'O';
             currentPlayer = 'X';
@@ -255,7 +236,6 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // 4. Случайный ход
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
                 if (board[row][col] == 0) {
@@ -270,7 +250,6 @@ public class GameScreen implements Screen {
 
     private int[] findWinningMove(char player) {
         for (int i = 0; i < 3; i++) {
-            // Горизонтали
             if (board[i][0] == player && board[i][1] == player && board[i][2] == 0)
                 return new int[]{i, 2};
             if (board[i][0] == player && board[i][2] == player && board[i][1] == 0)
@@ -278,7 +257,6 @@ public class GameScreen implements Screen {
             if (board[i][1] == player && board[i][2] == player && board[i][0] == 0)
                 return new int[]{i, 0};
 
-            // Вертикали
             if (board[0][i] == player && board[1][i] == player && board[2][i] == 0)
                 return new int[]{2, i};
             if (board[0][i] == player && board[2][i] == player && board[1][i] == 0)
@@ -287,7 +265,6 @@ public class GameScreen implements Screen {
                 return new int[]{0, i};
         }
 
-        // Диагонали
         if (board[0][0] == player && board[1][1] == player && board[2][2] == 0)
             return new int[]{2, 2};
         if (board[0][0] == player && board[2][2] == player && board[1][1] == 0)
@@ -306,7 +283,6 @@ public class GameScreen implements Screen {
     }
 
     private void checkGameState() {
-        // Проверка строк
         for (int row = 0; row < 3; row++) {
             if (board[row][0] != 0 && board[row][0] == board[row][1] && board[row][0] == board[row][2]) {
                 endGame(board[row][0] == 'X' ? GameState.X_WON : GameState.O_WON);
@@ -314,7 +290,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Проверка столбцов
+
         for (int col = 0; col < 3; col++) {
             if (board[0][col] != 0 && board[0][col] == board[1][col] && board[0][col] == board[2][col]) {
                 endGame(board[0][col] == 'X' ? GameState.X_WON : GameState.O_WON);
@@ -322,7 +298,6 @@ public class GameScreen implements Screen {
             }
         }
 
-        // Проверка диагоналей
         if (board[0][0] != 0 && board[0][0] == board[1][1] && board[0][0] == board[2][2]) {
             endGame(board[0][0] == 'X' ? GameState.X_WON : GameState.O_WON);
             return;
@@ -333,7 +308,6 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // Проверка на ничью
         boolean isDraw = true;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
