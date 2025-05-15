@@ -1,6 +1,5 @@
 package ru.itschool.TicTacToe;
 
-
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
@@ -24,11 +23,11 @@ import com.badlogic.gdx.utils.Align;
 public class GameScreen implements Screen {
     private final TicTacToeGame game;
     private final boolean vsAI;
+    private final int fieldSize;
 
     private Texture boardTexture;
     private Texture xTexture;
     private Texture oTexture;
-
     private SpriteBatch batch;
     private char[][] board;
     private char currentPlayer;
@@ -41,22 +40,34 @@ public class GameScreen implements Screen {
     private TextButton restartButton;
     private TextButton menuButton;
 
-    public GameScreen(TicTacToeGame game, boolean vsAI) {
+    public GameScreen(TicTacToeGame game, boolean vsAI, int fieldSize) {
         this.game = game;
         this.vsAI = vsAI;
+        this.fieldSize = fieldSize;
         resetGame();
     }
 
     private void resetGame() {
-        this.board = new char[3][3];
-        this.cells = new Rectangle[3][3];
+        this.board = new char[fieldSize][fieldSize];
+        this.cells = new Rectangle[fieldSize][fieldSize];
         this.currentPlayer = 'X';
         this.gameState = GameState.PLAYING;
     }
 
     @Override
     public void show() {
-        boardTexture = new Texture(Gdx.files.internal("board.png"));
+        switch(fieldSize) {
+            case 3:
+                boardTexture = new Texture(Gdx.files.internal("board3x3.png"));
+                break;
+            case 4:
+                boardTexture = new Texture(Gdx.files.internal("board4x4.png"));
+                break;
+            case 5:
+                boardTexture = new Texture(Gdx.files.internal("board5x5.png"));
+                break;
+        }
+
         xTexture = new Texture(Gdx.files.internal("X.png"));
         oTexture = new Texture(Gdx.files.internal("O.png"));
         font = new BitmapFont(Gdx.files.internal("stylo.fnt"), false);
@@ -64,12 +75,12 @@ public class GameScreen implements Screen {
         batch = new SpriteBatch();
 
         int boardSize = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        float cellSize = boardSize / 3f;
-        float boardX = (float) (Gdx.graphics.getWidth() - boardSize) / 2;
-        float boardY = (float) (Gdx.graphics.getHeight() - boardSize) / 2;
+        float cellSize = boardSize / (float)fieldSize;
+        float boardX = (float)(Gdx.graphics.getWidth() - boardSize) / 2;
+        float boardY = (float)(Gdx.graphics.getHeight() - boardSize) / 2;
 
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < fieldSize; row++) {
+            for (int col = 0; col < fieldSize; col++) {
                 cells[row][col] = new Rectangle(
                     boardX + col * cellSize,
                     boardY + row * cellSize,
@@ -149,16 +160,16 @@ public class GameScreen implements Screen {
 
         batch.begin();
         int boardSize = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        float boardX = (float) (Gdx.graphics.getWidth() - boardSize) / 2;
-        float boardY = (float) (Gdx.graphics.getHeight() - boardSize) / 2;
+        float boardX = (float)(Gdx.graphics.getWidth() - boardSize) / 2;
+        float boardY = (float)(Gdx.graphics.getHeight() - boardSize) / 2;
 
         batch.draw(boardTexture, boardX, boardY, boardSize, boardSize);
 
-        float cellSize = boardSize / 3f;
+        float cellSize = boardSize / (float)fieldSize;
         float padding = cellSize * 0.1f;
 
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < fieldSize; row++) {
+            for (int col = 0; col < fieldSize; col++) {
                 if (board[row][col] == 'X') {
                     batch.draw(xTexture,
                         boardX + col * cellSize + padding,
@@ -191,19 +202,19 @@ public class GameScreen implements Screen {
 
     private void handleTouch(Vector3 touchPos) {
         int boardSize = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        float boardX = (float) (Gdx.graphics.getWidth() - boardSize) / 2;
-        float boardY = (float) (Gdx.graphics.getHeight() - boardSize) / 2;
+        float boardX = (float)(Gdx.graphics.getWidth() - boardSize) / 2;
+        float boardY = (float)(Gdx.graphics.getHeight() - boardSize) / 2;
 
         if (touchPos.x < boardX || touchPos.x > boardX + boardSize ||
             touchPos.y < boardY || touchPos.y > boardY + boardSize) {
             return;
         }
 
-        int col = (int)((touchPos.x - boardX) / (boardSize / 3f));
-        int row = (int)((touchPos.y - boardY) / (boardSize / 3f));
-        row = 2 - row;
+        int col = (int)((touchPos.x - boardX) / (boardSize / (float)fieldSize));
+        int row = (int)((touchPos.y - boardY) / (boardSize / (float)fieldSize));
+        row = fieldSize - 1 - row;
 
-        if (row >= 0 && row < 3 && col >= 0 && col < 3 && board[row][col] == 0) {
+        if (row >= 0 && row < fieldSize && col >= 0 && col < fieldSize && board[row][col] == 0) {
             board[row][col] = currentPlayer;
             checkGameState();
             if (gameState == GameState.PLAYING) {
@@ -214,30 +225,43 @@ public class GameScreen implements Screen {
     }
 
     private void makeAIMove() {
-        int[] winMove = findWinningMove('O');
-        if (winMove != null) {
-            board[winMove[0]][winMove[1]] = 'O';
-            endGame(GameState.O_WON);
-            return;
+        for (int row = 0; row < fieldSize; row++) {
+            for (int col = 0; col < fieldSize; col++) {
+                if (board[row][col] == 0) {
+                    board[row][col] = 'O';
+                    if (checkWin('O')) {
+                        endGame(GameState.O_WON);
+                        return;
+                    }
+                    board[row][col] = 0;
+                }
+            }
         }
 
-        int[] blockMove = findWinningMove('X');
-        if (blockMove != null) {
-            board[blockMove[0]][blockMove[1]] = 'O';
+        for (int row = 0; row < fieldSize; row++) {
+            for (int col = 0; col < fieldSize; col++) {
+                if (board[row][col] == 0) {
+                    board[row][col] = 'X';
+                    if (checkWin('X')) {
+                        board[row][col] = 'O';
+                        currentPlayer = 'X';
+                        statusLabel.setText("Turn: X");
+                        return;
+                    }
+                    board[row][col] = 0;
+                }
+            }
+        }
+
+        if (fieldSize % 2 == 1 && board[fieldSize/2][fieldSize/2] == 0) {
+            board[fieldSize/2][fieldSize/2] = 'O';
             currentPlayer = 'X';
             statusLabel.setText("Turn: X");
             return;
         }
 
-        if (board[1][1] == 0) {
-            board[1][1] = 'O';
-            currentPlayer = 'X';
-            statusLabel.setText("Turn: X");
-            return;
-        }
-
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < fieldSize; row++) {
+            for (int col = 0; col < fieldSize; col++) {
                 if (board[row][col] == 0) {
                     board[row][col] = 'O';
                     currentPlayer = 'X';
@@ -248,74 +272,42 @@ public class GameScreen implements Screen {
         }
     }
 
-    private int[] findWinningMove(char player) {
-        for (int i = 0; i < 3; i++) {
-            if (board[i][0] == player && board[i][1] == player && board[i][2] == 0)
-                return new int[]{i, 2};
-            if (board[i][0] == player && board[i][2] == player && board[i][1] == 0)
-                return new int[]{i, 1};
-            if (board[i][1] == player && board[i][2] == player && board[i][0] == 0)
-                return new int[]{i, 0};
-
-            if (board[0][i] == player && board[1][i] == player && board[2][i] == 0)
-                return new int[]{2, i};
-            if (board[0][i] == player && board[2][i] == player && board[1][i] == 0)
-                return new int[]{1, i};
-            if (board[1][i] == player && board[2][i] == player && board[0][i] == 0)
-                return new int[]{0, i};
+    private boolean checkWin(char player) {
+        for (int i = 0; i < fieldSize; i++) {
+            boolean rowWin = true;
+            boolean colWin = true;
+            for (int j = 0; j < fieldSize; j++) {
+                if (board[i][j] != player) rowWin = false;
+                if (board[j][i] != player) colWin = false;
+            }
+            if (rowWin || colWin) return true;
         }
 
-        if (board[0][0] == player && board[1][1] == player && board[2][2] == 0)
-            return new int[]{2, 2};
-        if (board[0][0] == player && board[2][2] == player && board[1][1] == 0)
-            return new int[]{1, 1};
-        if (board[1][1] == player && board[2][2] == player && board[0][0] == 0)
-            return new int[]{0, 0};
+        boolean diag1Win = true;
+        boolean diag2Win = true;
+        for (int i = 0; i < fieldSize; i++) {
+            if (board[i][i] != player) diag1Win = false;
+            if (board[i][fieldSize-1-i] != player) diag2Win = false;
+        }
 
-        if (board[0][2] == player && board[1][1] == player && board[2][0] == 0)
-            return new int[]{2, 0};
-        if (board[0][2] == player && board[2][0] == player && board[1][1] == 0)
-            return new int[]{1, 1};
-        if (board[1][1] == player && board[2][0] == player && board[0][2] == 0)
-            return new int[]{0, 2};
-
-        return null;
+        return diag1Win || diag2Win;
     }
 
     private void checkGameState() {
-        for (int row = 0; row < 3; row++) {
-            if (board[row][0] != 0 && board[row][0] == board[row][1] && board[row][0] == board[row][2]) {
-                endGame(board[row][0] == 'X' ? GameState.X_WON : GameState.O_WON);
-                return;
-            }
-        }
-
-
-        for (int col = 0; col < 3; col++) {
-            if (board[0][col] != 0 && board[0][col] == board[1][col] && board[0][col] == board[2][col]) {
-                endGame(board[0][col] == 'X' ? GameState.X_WON : GameState.O_WON);
-                return;
-            }
-        }
-
-        if (board[0][0] != 0 && board[0][0] == board[1][1] && board[0][0] == board[2][2]) {
-            endGame(board[0][0] == 'X' ? GameState.X_WON : GameState.O_WON);
-            return;
-        }
-
-        if (board[0][2] != 0 && board[0][2] == board[1][1] && board[0][2] == board[2][0]) {
-            endGame(board[0][2] == 'X' ? GameState.X_WON : GameState.O_WON);
+        if (checkWin(currentPlayer)) {
+            endGame(currentPlayer == 'X' ? GameState.X_WON : GameState.O_WON);
             return;
         }
 
         boolean isDraw = true;
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 3; col++) {
+        for (int row = 0; row < fieldSize; row++) {
+            for (int col = 0; col < fieldSize; col++) {
                 if (board[row][col] == 0) {
                     isDraw = false;
                     break;
                 }
             }
+            if (!isDraw) break;
         }
 
         if (isDraw) {
@@ -327,13 +319,13 @@ public class GameScreen implements Screen {
         gameState = state;
         switch (state) {
             case X_WON:
-                statusLabel.setText("X won");
+                statusLabel.setText("X won!");
                 break;
             case O_WON:
-                statusLabel.setText("O won");
+                statusLabel.setText("O won!");
                 break;
             case DRAW:
-                statusLabel.setText("Draw");
+                statusLabel.setText("Draw!");
                 break;
         }
         restartButton.setVisible(true);
