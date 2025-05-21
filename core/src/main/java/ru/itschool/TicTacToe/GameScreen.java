@@ -57,15 +57,10 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         switch(fieldSize) {
-            case 3:
-                boardTexture = new Texture(Gdx.files.internal("board3x3.png"));
-                break;
-            case 4:
-                boardTexture = new Texture(Gdx.files.internal("board4x4.png"));
-                break;
-            case 5:
-                boardTexture = new Texture(Gdx.files.internal("board5x5.png"));
-                break;
+            case 3: boardTexture = new Texture(Gdx.files.internal("board3x3.png")); break;
+            case 4: boardTexture = new Texture(Gdx.files.internal("board4x4.png")); break;
+            case 5: boardTexture = new Texture(Gdx.files.internal("board5x5.png")); break;
+            default: boardTexture = new Texture(Gdx.files.internal("board3x3.png"));
         }
 
         xTexture = new Texture(Gdx.files.internal("X.png"));
@@ -97,15 +92,14 @@ public class GameScreen implements Screen {
         statusLabel = new Label("Turn: X", labelStyle);
         statusLabel.setAlignment(Align.right);
 
-        TextureRegionDrawable buttonUp = createButtonDrawable(Color.DARK_GRAY);
-        TextureRegionDrawable buttonDown = createButtonDrawable(Color.GRAY);
-
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.font = font;
-        buttonStyle.up = buttonUp;
-        buttonStyle.down = buttonDown;
+        buttonStyle.up = createButtonDrawable(new Color(0.2f, 0.2f, 0.2f, 0.8f));
+        buttonStyle.down = createButtonDrawable(new Color(0.3f, 0.3f, 0.3f, 0.9f));
+        buttonStyle.over = createButtonDrawable(new Color(0.25f, 0.25f, 0.25f, 0.8f));
 
         restartButton = new TextButton("Restart", buttonStyle);
+        restartButton.pad(10, 15, 10, 15);
         restartButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -116,7 +110,8 @@ public class GameScreen implements Screen {
             }
         });
 
-        menuButton = new TextButton("To menu", buttonStyle);
+        menuButton = new TextButton("Menu", buttonStyle);
+        menuButton.pad(10, 15, 10, 15);
         menuButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -127,30 +122,21 @@ public class GameScreen implements Screen {
         restartButton.setVisible(false);
         menuButton.setVisible(false);
 
-        float buttonWidth = Gdx.graphics.getWidth() * 0.2f;
-        float buttonHeight = buttonWidth * 0.4f;
-
-        Table buttonTable = new Table();
-        buttonTable.defaults().pad(5).width(buttonWidth).height(buttonHeight);
-        buttonTable.add(restartButton).row();
-        buttonTable.add(menuButton);
-
         Table uiTable = new Table();
         uiTable.setFillParent(true);
-        uiTable.top().right().pad(10);
-        uiTable.add(statusLabel).right().padBottom(5).row();
-        uiTable.add(buttonTable).right();
+        uiTable.top().right().pad(20);
+
+        Table rightPanel = new Table();
+        rightPanel.add(statusLabel).right().padBottom(10).row();
+
+        Table buttonTable = new Table();
+        buttonTable.add(restartButton).padRight(10);
+        buttonTable.add(menuButton);
+
+        rightPanel.add(buttonTable).right();
+        uiTable.add(rightPanel).right();
 
         uiStage.addActor(uiTable);
-    }
-
-    private TextureRegionDrawable createButtonDrawable(Color color) {
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(color);
-        pixmap.fill();
-        Texture texture = new Texture(pixmap);
-        pixmap.dispose();
-        return new TextureRegionDrawable(new TextureRegion(texture));
     }
 
     @Override
@@ -211,8 +197,7 @@ public class GameScreen implements Screen {
         }
 
         int col = (int)((touchPos.x - boardX) / (boardSize / (float)fieldSize));
-        int row = (int)((touchPos.y - boardY) / (boardSize / (float)fieldSize));
-        row = fieldSize - 1 - row;
+        int row = fieldSize - 1 - (int)((touchPos.y - boardY) / (boardSize / (float)fieldSize));
 
         if (row >= 0 && row < fieldSize && col >= 0 && col < fieldSize && board[row][col] == 0) {
             board[row][col] = currentPlayer;
@@ -229,72 +214,40 @@ public class GameScreen implements Screen {
             for (int col = 0; col < fieldSize; col++) {
                 if (board[row][col] == 0) {
                     board[row][col] = 'O';
-                    if (checkWin('O')) {
-                        endGame(GameState.O_WON);
-                        return;
-                    }
-                    board[row][col] = 0;
-                }
-            }
-        }
-
-        for (int row = 0; row < fieldSize; row++) {
-            for (int col = 0; col < fieldSize; col++) {
-                if (board[row][col] == 0) {
-                    board[row][col] = 'X';
-                    if (checkWin('X')) {
-                        board[row][col] = 'O';
-                        currentPlayer = 'X';
-                        statusLabel.setText("Turn: X");
-                        return;
-                    }
-                    board[row][col] = 0;
-                }
-            }
-        }
-
-        if (fieldSize % 2 == 1 && board[fieldSize/2][fieldSize/2] == 0) {
-            board[fieldSize/2][fieldSize/2] = 'O';
-            currentPlayer = 'X';
-            statusLabel.setText("Turn: X");
-            return;
-        }
-
-        for (int row = 0; row < fieldSize; row++) {
-            for (int col = 0; col < fieldSize; col++) {
-                if (board[row][col] == 0) {
-                    board[row][col] = 'O';
                     currentPlayer = 'X';
                     statusLabel.setText("Turn: X");
+                    checkGameState();
                     return;
                 }
             }
         }
     }
 
-    private boolean checkWin(char player) {
+    private boolean checkLine(int startRow, int startCol, int rowDelta, int colDelta, char player) {
         for (int i = 0; i < fieldSize; i++) {
-            boolean rowWin = true;
-            boolean colWin = true;
-            for (int j = 0; j < fieldSize; j++) {
-                if (board[i][j] != player) rowWin = false;
-                if (board[j][i] != player) colWin = false;
+            int row = startRow + i * rowDelta;
+            int col = startCol + i * colDelta;
+            if (row < 0 || row >= fieldSize || col < 0 || col >= fieldSize || board[row][col] != player) {
+                return false;
             }
-            if (rowWin || colWin) return true;
         }
-
-        boolean diag1Win = true;
-        boolean diag2Win = true;
-        for (int i = 0; i < fieldSize; i++) {
-            if (board[i][i] != player) diag1Win = false;
-            if (board[i][fieldSize-1-i] != player) diag2Win = false;
-        }
-
-        return diag1Win || diag2Win;
+        return true;
     }
 
     private void checkGameState() {
-        if (checkWin(currentPlayer)) {
+        for (int i = 0; i < fieldSize; i++) {
+            if (checkLine(i, 0, 0, 1, currentPlayer)) {
+                endGame(currentPlayer == 'X' ? GameState.X_WON : GameState.O_WON);
+                return;
+            }
+            if (checkLine(0, i, 1, 0, currentPlayer)) {
+                endGame(currentPlayer == 'X' ? GameState.X_WON : GameState.O_WON);
+                return;
+            }
+        }
+
+        if (checkLine(0, 0, 1, 1, currentPlayer) ||
+            checkLine(0, fieldSize-1, 1, -1, currentPlayer)) {
             endGame(currentPlayer == 'X' ? GameState.X_WON : GameState.O_WON);
             return;
         }
@@ -319,10 +272,10 @@ public class GameScreen implements Screen {
         gameState = state;
         switch (state) {
             case X_WON:
-                statusLabel.setText("X won!");
+                statusLabel.setText("X wins!");
                 break;
             case O_WON:
-                statusLabel.setText("O won!");
+                statusLabel.setText("O wins!");
                 break;
             case DRAW:
                 statusLabel.setText("Draw!");
@@ -330,6 +283,15 @@ public class GameScreen implements Screen {
         }
         restartButton.setVisible(true);
         menuButton.setVisible(true);
+    }
+
+    private TextureRegionDrawable createButtonDrawable(Color color) {
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(color);
+        pixmap.fill();
+        Texture texture = new Texture(pixmap);
+        pixmap.dispose();
+        return new TextureRegionDrawable(new TextureRegion(texture));
     }
 
     @Override
